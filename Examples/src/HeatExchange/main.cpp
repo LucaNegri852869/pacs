@@ -2,6 +2,7 @@
 #include <cmath> // (for sqrt)
 #include <vector>
 #include <tuple>
+#include <string>
 #include "readParameters.hpp"
 #include "GetPot.hpp"
 #include "gnuplot-iostream.hpp"// interface with gnuplot
@@ -62,6 +63,8 @@ int main(int argc, char** argv)
   const auto& k=param.k;  // Thermal conductivity
   const auto& hc=param.hc; // Convection coefficient
   const auto&    M=param.M; // Number of grid elements
+  std::string out_file(param.out_file); //Name of the result file
+  int where=param.where; //This is where we put the output
   
   //! Precomputed coefficient for adimensional form of equation
   const auto act=2.*(a1+a2)*hc*L*L/(k*a1*a2);
@@ -126,8 +129,35 @@ int main(int argc, char** argv)
      std::vector<double> sol(M+1);
      std::vector<double> exact(M+1);
 
-     cout<<"Result file: result.dat"<<endl;
-     ofstream f("result.dat");
+     ofstream f(out_file);
+
+     switch(where)
+    {
+    case 0:
+     cout<<"Result file: "<<out_file<<endl;
+     for(int m = 0; m<= M; m++)
+       {
+	 // \t writes a tab 
+         f<<m*h*L<<"\t"<<Te*(1.+theta[m])<<"\t"<<thetaa[m]<<endl;
+	 // An example of use of tie and tuples!
+         
+	 std::tie(coor[m],sol[m],exact[m])=
+	   std::make_tuple(m*h*L,Te*(1.+theta[m]),thetaa[m]);
+       }
+      break;
+     case 1:
+     for(int m = 0; m<= M; m++)
+       {
+	 // \t writes a tab 
+         f<<m*h*L<<"\t"<<Te*(1.+theta[m])<<"\t"<<thetaa[m]<<endl;
+	 // An example of use of tie and tuples!
+         
+	 std::tie(coor[m],sol[m],exact[m])=
+	   std::make_tuple(m*h*L,Te*(1.+theta[m]),thetaa[m]);
+       }
+     break;  
+     case 2:
+     cout<<"Result file: "<<out_file<<endl;
      for(int m = 0; m<= M; m++)
        {
 	 // \t writes a tab 
@@ -141,6 +171,8 @@ int main(int argc, char** argv)
      gp<<"plot"<<gp.file1d(std::tie(coor,sol))<<
        "w lp title 'uh',"<< gp.file1d(std::tie(coor,exact))<<
        "w l title 'uex'"<<std::endl;
-     f.close();
+     break;
+    }
+    f.close();
      return status;
 }

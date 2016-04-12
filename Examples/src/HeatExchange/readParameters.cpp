@@ -1,6 +1,7 @@
 #include "GetPot.hpp"
 #include "readParameters.hpp"
 #include <fstream>
+#include <string>
 parameters readParameters(std::string const & filename,bool verbose)
 {
   // Parameter default constructor fills it with the defaults values
@@ -31,6 +32,9 @@ parameters readParameters(std::string const & filename,bool verbose)
   values.k=ifile("k",defaults.k);
   values.hc=ifile("hc",defaults.hc);
   values.M=ifile("M",defaults.M);
+  values.out_file=ifile("out_file",defaults.out_file.c_str());
+  values.where=ifile("where",defaults.where);
+  //values.where=static_cast<Otype>(ifile("where",defaults.where));
   if(verbose)
     {
       std::cout<<"PARAMETER VALUES IN GETPOT FILE"<<"\n";

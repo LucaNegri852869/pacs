@@ -23,10 +23,14 @@ struct parameters
   double hc;
   //! Number of elements
   int M;
+  //! Filename of the output file
+  std::string out_file;
+  //! Parameter that specify the norm to use
+  int norm;
   //! Constructor takes default values
   parameters():
     itermax(1000000),
-    toler(1e-8),
+    toler(1.e-8),
     L(40.),
     a1(4.),
     a2(50.),
@@ -34,7 +38,9 @@ struct parameters
     Te(20.),
     k(0.164),
     hc(1.e-6*200.),
-    M(100)
+    M(100),
+    out_file("result.dat"),
+    norm(0)
   {}
 };
 //! Prints parameters

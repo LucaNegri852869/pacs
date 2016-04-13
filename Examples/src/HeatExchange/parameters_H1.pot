@@ -21,6 +21,6 @@ hc=200.0e-6
 # Number of elements
 M=11
 #Name of the file where the output results are
-out_file=result_Rn.dat
+out_file=result_H1.dat
 #Norm used
-norm=0
+norm=2

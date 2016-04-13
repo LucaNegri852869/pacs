@@ -61,7 +61,9 @@ int main(int argc, char** argv)
   const auto& Te=param.Te; // External temperature (Centigrades)
   const auto& k=param.k;  // Thermal conductivity
   const auto& hc=param.hc; // Convection coefficient
-  const auto&    M=param.M; // Number of grid elements
+  const auto& M=param.M; // Number of grid elements
+  const int& norm=param.norm;
+  std::string out_file(param.out_file); //Name of the result file
   
   //! Precomputed coefficient for adimensional form of equation
   const auto act=2.*(a1+a2)*hc*L*L/(k*a1*a2);
@@ -84,6 +86,11 @@ int main(int argc, char** argv)
   
   int iter=0;
   double xnew, epsilon;
+  switch(norm)
+  {
+  case 0:    //I use the Rn norm as stopping criterion
+  {
+  cout<<"Norm used: Rn"<<endl;
      do
        { epsilon=0.;
 
@@ -102,7 +109,81 @@ int main(int argc, char** argv)
 
 	 iter=iter+1;     
        }while((sqrt(epsilon) > toler) && (iter < itermax) );
+      break;
+      }
+      
+      case 1:    //I use norm L2 as stopping criterion 
+      {
+      cout<<"Norm used: L2"<<endl;
+      double theta_back;
+      do
+       { epsilon=0.;
+       	theta_back=theta[0];
 
+	 // first M-1 row of linear system
+         for(int m=1;m < M;m++)
+         {   
+	   xnew  = (theta[m-1]+theta[m+1])/(2.+h*h*act);
+	   epsilon += (((xnew-theta[m])*(xnew-theta[m]))+((theta[m-1]-theta_back)*(theta[m-1]-theta_back)))*0.5*h;  //I used the trapezoidal rule for computing the integral
+	   theta_back=theta[m];
+	   theta[m] = xnew;
+         }
+
+	 //Last row
+	 xnew = theta[M-1]; 
+	 epsilon += ((xnew-theta[M])*(xnew-theta[M])+(theta[M-1]-theta_back)*(theta[M-1]-theta_back))*0.5*h;    //I used the trapezoidal rule for computing the integral
+	 theta[M]=  xnew; 
+
+	 iter=iter+1;     
+       }while((sqrt(epsilon) > toler) && (iter < itermax) );
+       break;
+       }
+       
+       
+       case 2:    //I use norm H1 as stopping criterion
+       {
+       cout<<"Norm used: H1"<<endl;
+       double theta_back;
+       double epsilonL2;
+       double epsilon_grad_L2;
+       double xnew_forw;
+       double theta_back2;
+       double xn_der;
+       double xo_der;
+         do
+       { epsilon=0.;
+       epsilonL2=0.;
+       epsilon_grad_L2=0.;
+       theta_back=theta[0];
+       theta_back2=theta[0];
+       xnew_forw=(theta[0]+theta[2])/(2.+h*h*act);
+
+	 // first M-1 row of linear system
+         for(int m=1;m < M;m++)
+         {   
+	   xnew  = xnew_forw;
+	   m < (M-1) ? xnew_forw=(xnew+theta[m+2])/(2.+h*h*act) : xnew_forw=xnew;
+	   epsilonL2 += (((xnew-theta[m])*(xnew-theta[m]))+((theta[m-1]-theta_back)*(theta[m-1]-theta_back)))*0.5*h;   //I used the trapezoidal rule for computing the integral
+	   xn_der=((xnew_forw-theta[m-1])*0.5/h)-((theta[m+1]-theta_back)*0.5/h);
+	   xo_der=((xnew-theta[m-2])*0.5/h)-((theta[m]-theta_back2)*0.5/h);
+	   m > 1 ? epsilon_grad_L2 += (xn_der*xn_der+xo_der*xo_der)*0.5*h : epsilon_grad_L2 += (xn_der*xn_der +(((xnew-theta[0])*0.5/h)-((theta[m]-theta_back2)*0.5/h))*(((xnew-theta[0])*0.5/h)-((theta[m]-theta_back2)*0.5/h)))*0.5*h ; 	//I used the trapezoidal rule for computing the integral and the second order central approximation for the derivatives
+	   theta_back2=theta_back;
+	   theta_back=theta[m];
+	   theta[m] = xnew;
+         }
+
+	 //Last row
+	 xnew = theta[M-1]; 
+	 epsilonL2 += ((xnew-theta[M])*(xnew-theta[M])+(theta[M-1]-theta_back)*(theta[M-1]-theta_back))*0.5*h;     //I used the trapezoidal rule for computing the integral
+	 epsilon_grad_L2 += ((((xnew-theta[M-1])/h)-(theta[M]-theta_back)/h)*(((xnew-theta[M-1])/h)-(theta[M]-theta_back)/h)+(((xnew-theta[M-2])*0.5/h)-((theta[M]-theta_back2)*0.5/h))*(((xnew-theta[M-2])*0.5/h)-((theta[M]-theta_back2)*0.5/h)))*0.5*h;	//I used the trapezoidal rule for computing the integral and both the second order central approximation and the first order left approximation for the derivatives	
+	 theta[M]=  xnew; 
+
+	 iter=iter+1;
+	 epsilon=sqrt(epsilonL2)+sqrt(epsilon_grad_L2);     
+       }while((epsilon > toler) && (iter < itermax) );
+       break;
+       }
+    }
     if(iter<itermax)
       cout << "M="<<M<<"  Convergence in "<<iter<<" iterations"<<endl;
     else
@@ -111,6 +192,7 @@ int main(int argc, char** argv)
 	  "||dx||="<<sqrt(epsilon)<<endl;
 	status=1;
       }
+      
 
  // Analitic solution
 
@@ -126,8 +208,8 @@ int main(int argc, char** argv)
      std::vector<double> sol(M+1);
      std::vector<double> exact(M+1);
 
-     cout<<"Result file: result.dat"<<endl;
-     ofstream f("result.dat");
+    cout<<"Result file: "<<out_file<<endl;
+      ofstream f(out_file);
      for(int m = 0; m<= M; m++)
        {
 	 // \t writes a tab 

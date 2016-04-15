@@ -27,6 +27,9 @@ include $(MAKEFILEH_DIR)/Makefile.inc
 # all other files are XX.cpp
 #
 
+CXXFLAGS+=-I${mkBoostInc}
+LIBD+=-L${mkBoostLib}
+
 # get all files *.cpp
 SRCS=$(wildcard *.cpp)
 # get the corresponding object file
@@ -49,7 +52,7 @@ clean:
 
 distclean:
 	$(MAKE) clean
-	$(RM) -f ./doc $(DEPEND) result.dat
+	$(RM) -f ./doc $(DEPEND) *.dat
 
 doc:
 	doxygen $(DOXYFILE)

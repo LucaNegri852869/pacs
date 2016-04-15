@@ -5,6 +5,7 @@
 #include "readParameters.hpp"
 #include "GetPot.hpp"
 #include "gnuplot-iostream.hpp"// interface with gnuplot
+#include"thomas.hpp"
 /*!
   @file main.cpp
   @brief Temperature distribution in a 1D bar.
@@ -72,44 +73,38 @@ int main(int argc, char** argv)
   // Solution vector
   std::vector<double> theta(M+1);
   
-  // Gauss Siedel is initialised with a linear variation
-  // of T
-  
   for(unsigned int m=0;m <= M;++m)
      theta[m]=(1.-m*h)*(To-Te)/Te;
-  
-  // Gauss-Seidel
+     
+     
+     bool dummy=0;		//Dummy variable that i use for the false statement in the conditional operator lines
+     std::vector<double> matrix(M*M,0);		//Create the matrix as a long vector and initialize it to 0
+     //Set the correct values of the matrix
+     for(int i=0; i<M; i++){
+     	for(int j=0; j<M; j++){
+     	   i==j ? matrix[i*M+j]=(2.+h*h*act) : dummy=0;
+     	   i==(j-1) ? matrix[i*M+j]=-1. : dummy=0;
+     	   i==(j+1) ? matrix[i*M+j]=-1. : dummy=0;
+     	}
+     }
+     matrix[M*M-2]=-1.;
+     matrix[M*M-1]=1.;
+     
+     
+     std::vector<double> xnew(M,0);
+     std::vector<double> theta_t(M,0);
+     theta_t[0]=theta[0];
+     
+  // Thomas algorithm
   // epsilon=||x^{k+1}-x^{k}||
   // Stopping criteria epsilon<=toler
-  
-  int iter=0;
-  double xnew, epsilon;
-     do
-       { epsilon=0.;
-
-	 // first M-1 row of linear system
-         for(int m=1;m < M;m++)
-         {   
-	   xnew  = (theta[m-1]+theta[m+1])/(2.+h*h*act);
-	   epsilon += (xnew-theta[m])*(xnew-theta[m]);
-	   theta[m] = xnew;
-         }
-
-	 //Last row
-	 xnew = theta[M-1]; 
-	 epsilon += (xnew-theta[M])*(xnew-theta[M]);
-	 theta[M]=  xnew; 
-
-	 iter=iter+1;     
-       }while((sqrt(epsilon) > toler) && (iter < itermax) );
-
-    if(iter<itermax)
-      cout << "M="<<M<<"  Convergence in "<<iter<<" iterations"<<endl;
-    else
-      {
-	cerr << "NOT CONVERGING in "<<itermax<<" iterations "<<
-	  "||dx||="<<sqrt(epsilon)<<endl;
-	status=1;
+ 
+       
+      thomas(matrix, xnew, theta_t, M);
+      
+         
+      for(int i=0;i<M;i++){
+      theta[i+1]=xnew[i];
       }
 
  // Analitic solution
